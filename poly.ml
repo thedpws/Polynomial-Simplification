@@ -49,9 +49,13 @@ let compare (e1: pExp) (e2: pExp) : bool =
   Hint 1: Print () around elements that are not Term() 
   Hint 2: Recurse on the elements of Plus[..] or Times[..]
 *)
-let print_pExp (_e: pExp): unit =
-  (* TODO *)
-  Printf.printf("Not implemented");
+let rec print_pExp (_e: pExp): unit =
+  match _e with
+  | Term(0,_) -> ();
+  | Term(a,0) -> string_of_int a |> print_string;
+  | Term(a,e) -> Printf.printf " %dx^%d " a e;
+  | Plus(ps) -> Printf.printf "("; List.iter print_pExp ps; Printf.printf ")";
+  | Times(ps) -> Printf.printf "("; List.iter print_pExp ps; Printf.printf ")";
   print_newline()
 
 (* 
