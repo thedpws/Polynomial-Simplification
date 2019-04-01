@@ -54,8 +54,14 @@ let rec print_pExp (_e: pExp): unit =
   | Term(0,_) -> ();
   | Term(a,0) -> string_of_int a |> print_string;
   | Term(a,e) -> Printf.printf " %dx^%d " a e;
-  | Plus(ps) -> Printf.printf "("; List.iter print_pExp ps; Printf.printf ")";
-  | Times(ps) -> Printf.printf "("; List.iter print_pExp ps; Printf.printf ")";
+  | Plus(ps) -> 
+      let add_print p =
+        print_pExp p; print_string ") + (" in
+      Printf.printf "("; List.iter add_print ps; Printf.printf ")";
+  | Times(ps) -> 
+      let mult_print p =
+        print_pExp p; print_string ")(" in
+      Printf.printf "("; List.iter print_pExp ps; Printf.printf ")";
   print_newline()
 
 (* 
