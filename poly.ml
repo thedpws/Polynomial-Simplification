@@ -29,7 +29,12 @@ let from_expr (_e: Expr.expr) : pExp =
   Hint 2: Degree of Plus[...] is the max of the degree of args
   Hint 3: Degree of Times[...] is the sum of the degree of args 
 *)
-let degree (_e:pExp): int = 0 (* TODO *)
+let rec degree (_e:pExp): int =
+  match _e with
+  | Term(n,m) -> m
+  | Plus(p::ps) -> if degree p > degree (Plus ps) then degree p else degree (Plus ps )
+  | Times(p::ps) -> degree p + degree (Times ps)
+  | _ -> 0
 
 (* 
   Comparison function useful for sorting of Plus[..] args 
@@ -61,7 +66,7 @@ let rec print_pExp (_e: pExp): unit =
   | Times(ps) -> 
       let mult_print p =
         print_pExp p; print_string ")(" in
-      Printf.printf "("; List.iter print_pExp ps; Printf.printf ")";
+      Printf.printf "("; List.iter mult_print ps; Printf.printf ")";
   print_newline()
 
 (* 
