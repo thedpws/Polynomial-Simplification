@@ -27,51 +27,38 @@ let rec from_expr (_e: Expr.expr) : pExp =
   (
     let evalExpr1 = from_expr expr1 in
     let evalExpr2 = from_expr expr2 in
-    Plus(Term(evalExpr1, 0); Term(evalExpr2, 0))                       
+    Plus([evalExpr1; evalExpr2])                       
   )
   | Sub(expr1, expr2) ->
   (
     let evalExpr1 = from_expr expr1 in
     let evalExpr2 = from_expr expr2 in
-    Plus(Term(evalExpr1, 0); Neg(Term(evalExpr2, 0)))                     
+    Plus([evalExpr1; Times([Term(-1,0); evalExpr2])])               
   )
   | Mul(expr1, expr2) ->
   (
     let evalExpr1 = from_expr expr1 in
     let evalExpr2 = from_expr expr2 in
-    Times(Term(evalExpr1, 0); Term(evalExpr2, 0))                       
+    Times([evalExpr1; evalExpr2])                   
   )
   | Pow(expr, n)     -> 
   (
-    let evalExpr = from_expr expr in
-    if n = 0 then 
-    (
-      evalExpr
-    )
-    else if n > 0 then 
-    (
-      from_expr Pow(Mul(evalExpr, evalExpr), n-1)
-    )
-    else if n < 0 then
-    (
-      from_expr Pow(Mul(evalExpr, evalExpr), n+1)
-    )
-
+    if n > 1 then from_expr (Mul(expr, Pow(expr, n-1)))
+    else if n < 1 then from_expr (Mul(expr, Pow(expr, n+1)))
+    else from_expr expr
   )
   | Pos(expr)         -> 
   (
-                                                (* Need to fix *)
+    (* Need to fix *)
     let evalExpr = from_expr expr in
-    Term(evalExpr, 0);
+    Times([Term(1, 0); evalExpr])
     
   )
   | Neg(expr)         ->  
   (
     let evalExpr = from_expr expr in
-    Times(Term(-1, 0); Term(evalExpr, 0));
+    Times([Term(-1, 0); evalExpr])
   )
-
-    (* Term(0,0) TODO *)
 
 (* 
   Compute degree of a polynomial expression.
@@ -80,7 +67,7 @@ let rec from_expr (_e: Expr.expr) : pExp =
   Hint 2: Degree of Plus[...] is the max of the degree of args
   Hint 3: Degree of Times[...] is the sum of the degree of args 
 *)
-let degree (_e:pExp): int =
+let rec degree (_e:pExp): int =
   match _e with
   | Term(n,m) -> m
   | Plus(p::ps) -> if degree p > degree (Plus ps) then degree p else degree (Plus ps )
@@ -105,9 +92,19 @@ let compare (e1: pExp) (e2: pExp) : bool =
   Hint 1: Print () around elements that are not Term() 
   Hint 2: Recurse on the elements of Plus[..] or Times[..]
 *)
-let print_pExp (_e: pExp): unit =
-  (* TODO *)
-  Printf.printf("Not implemented");
+let rec print_pExp (_e: pExp): unit =
+  match _e with
+  | Term(0,_) -> ();
+  | Term(a,0) -> string_of_int a |> print_string;
+  | Term(a,e) -> Printf.printf " %dx^%d " a e;
+  | Plus(ps) -> 
+      let add_print p =
+        print_pExp p; print_string ") + (" in
+      Printf.printf "("; List.iter add_print ps; Printf.printf ")";
+  | Times(ps) -> 
+      let mult_print p =
+        print_pExp p; print_string ")(" in
+      Printf.printf "("; List.iter mult_print ps; Printf.printf ")";
   print_newline()
 
 (* 
@@ -127,6 +124,11 @@ let print_pExp (_e: pExp): unit =
       => Plus[Term(2,3); Term(6,5)]
   Hint 6: Find other situations that can arise
 *)
+(* let rec add (p1: pExp) (p2: pExp) : Plus =
+  match (p1, p2) with
+  | ()
+ *)
+
 let simplify1 (e:pExp): pExp =
     e
 
