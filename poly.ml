@@ -43,15 +43,22 @@ let rec from_expr (_e: Expr.expr) : pExp =
   )
   | Pow(expr, n)     -> 
   (
-    if n > 1 then from_expr (Mul(expr, Pow(expr, n-1)))
-    else if n < 1 then from_expr (Mul(expr, Pow(expr, n+1)))
+    if n > 0 then from_expr (Mul(expr, Pow(expr, n-1)))
+    else if n < 0 then from_expr (Mul(expr, Pow(expr, n+1)))
     else from_expr expr
   )
   | Pos(expr)         -> 
   (
     (* Need to fix *)
+    
     let evalExpr = from_expr expr in
-    Times([Term(1, 0); evalExpr])
+    match expr with
+    | Num(n) ->
+    (
+      if n < 0 then Times([Term(-1*n, 0); evalExpr])
+      else evalExpr
+    )
+    | _ -> evalExpr
     
   )
   | Neg(expr)         ->  
@@ -62,7 +69,6 @@ let rec from_expr (_e: Expr.expr) : pExp =
 
 (* 
   Compute degree of a polynomial expression.
-
   Hint 1: Degree of Term(n,m) is m
   Hint 2: Degree of Plus[...] is the max of the degree of args
   Hint 3: Degree of Times[...] is the sum of the degree of args 
@@ -88,7 +94,6 @@ let compare (e1: pExp) (e2: pExp) : bool =
   Term(4,2) -> 4x^2
   Plus... -> () + () 
   Times ... -> ()() .. ()
-
   Hint 1: Print () around elements that are not Term() 
   Hint 2: Recurse on the elements of Plus[..] or Times[..]
 *)
@@ -109,10 +114,8 @@ let rec print_pExp (_e: pExp): unit =
 
 (* 
   Function to simplify (one pass) pExpr
-
   n1 x^m1 * n2 x^m2 -> n1*n2 x^(m1+m2)
   Term(n1,m1)*Term(n2,m2) -> Term(n1*n2,m1+m2)
-
   Hint 1: Keep terms in Plus[...] sorted
   Hint 2: flatten plus, i.e. Plus[ Plus[..], ..] => Plus[..]
   Hint 3: flatten times, i.e. times of times is times
@@ -150,7 +153,3 @@ let rec simplify (e:pExp): pExp =
         e
       else  
         simplify(rE)
-
-
-
-

@@ -31,10 +31,10 @@ and
       | Pow(e,i) -> 
         Printf.printf "(";
         print_expr_r e;
-        Printf.printf ")^%d" i;
+        Printf.printf ")^%d" i
       | Pos(e) -> print_op1 "+" e
       | Neg(e) -> print_op1 "-" e
-      | _ -> Printf.printf "AZ is gay";
+      | _ -> Printf.printf "AZ is gay"
 
 (*
   Print expression and pass it through
