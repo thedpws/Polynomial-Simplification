@@ -41,8 +41,17 @@ let rec degree (_e:pExp): int =
   to "normalize them". This way, terms that need to be reduced
   show up one after another.
   *)
+(*
 let compare (e1: pExp) (e2: pExp) : bool =
   degree e1 > degree e2
+(* returns true if in order *)
+  *)
+
+let rec sort (_: Plus(l)) : pExp list =
+    match l with
+    | p1::[]        -> [p1]
+    | p1::p2::[]    -> if degree p1 > degree p2 then p2::[p1] else l
+    | p1::p2::ps    -> if degree p1 > degree p2 then p2::(sort p2::ps) else p1::(sort p2::ps)
 
 (* Print a pExpr nicely 
   Term(3,0) -> 3
