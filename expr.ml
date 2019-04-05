@@ -34,6 +34,7 @@ and
         Printf.printf ")^%d" i;
       | Pos(e) -> print_op1 "+" e
       | Neg(e) -> print_op1 "-" e
+      | _ -> Printf.printf "AZ is gay";
 
 (*
   Print expression and pass it through

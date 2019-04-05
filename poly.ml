@@ -16,11 +16,49 @@ type pExp =
 
 
 (*
-  Function to traslate betwen AST expressions
+  Function to traslate between AST expressions
   to pExp expressions
 *)
-let from_expr (_e: Expr.expr) : pExp =
-    Term(0,0) (* TODO *)
+let rec from_expr (_e: Expr.expr) : pExp =
+  match _e with
+  | Num(n)            -> Term(n, 0)
+  | Var(v)            -> Term(1, 1)
+  | Add(expr1, expr2) -> 
+  (
+    let evalExpr1 = from_expr expr1 in
+    let evalExpr2 = from_expr expr2 in
+    Plus([evalExpr1; evalExpr2])                       
+  )
+  | Sub(expr1, expr2) ->
+  (
+    let evalExpr1 = from_expr expr1 in
+    let evalExpr2 = from_expr expr2 in
+    Plus([evalExpr1; Times([Term(-1,0); evalExpr2])])               
+  )
+  | Mul(expr1, expr2) ->
+  (
+    let evalExpr1 = from_expr expr1 in
+    let evalExpr2 = from_expr expr2 in
+    Times([evalExpr1; evalExpr2])                   
+  )
+  | Pow(expr, n)     -> 
+  (
+    if n > 1 then from_expr (Mul(expr, Pow(expr, n-1)))
+    else if n < 1 then from_expr (Mul(expr, Pow(expr, n+1)))
+    else from_expr expr
+  )
+  | Pos(expr)         -> 
+  (
+    (* Need to fix *)
+    let evalExpr = from_expr expr in
+    Times([Term(1, 0); evalExpr])
+    
+  )
+  | Neg(expr)         ->  
+  (
+    let evalExpr = from_expr expr in
+    Times([Term(-1, 0); evalExpr])
+  )
 
 (* 
   Compute degree of a polynomial expression.
@@ -161,6 +199,10 @@ let rec distribute (arg1: Times) (arg2: Plus) : Plus =
     let rval = [] in
     match arg2 with
     | p::[]     -> multiply arg1 p
+(* let rec add (p1: pExp) (p2: pExp) : Plus =
+  match (p1, p2) with
+  | ()
+ *)
 
 let simplify1 (e:pExp): pExp =
     e
