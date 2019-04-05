@@ -16,11 +16,62 @@ type pExp =
 
 
 (*
-  Function to traslate betwen AST expressions
+  Function to traslate between AST expressions
   to pExp expressions
 *)
-let from_expr (_e: Expr.expr) : pExp =
-    Term(0,0) (* TODO *)
+let rec from_expr (_e: Expr.expr) : pExp =
+  match _e with
+  | Num(n)            -> Term(n, 0)
+  | Var(v)            -> Term(1, 1)
+  | Add(expr1, expr2) -> 
+  (
+    let evalExpr1 = from_expr expr1 in
+    let evalExpr2 = from_expr expr2 in
+    Plus(Term(evalExpr1, 0); Term(evalExpr2, 0))                       
+  )
+  | Sub(expr1, expr2) ->
+  (
+    let evalExpr1 = from_expr expr1 in
+    let evalExpr2 = from_expr expr2 in
+    Plus(Term(evalExpr1, 0); Neg(Term(evalExpr2, 0)))                     
+  )
+  | Mul(expr1, expr2) ->
+  (
+    let evalExpr1 = from_expr expr1 in
+    let evalExpr2 = from_expr expr2 in
+    Times(Term(evalExpr1, 0); Term(evalExpr2, 0))                       
+  )
+  | Pow(expr, n)     -> 
+  (
+    let evalExpr = from_expr expr in
+    if n = 0 then 
+    (
+      evalExpr
+    )
+    else if n > 0 then 
+    (
+      from_expr Pow(Mul(evalExpr, evalExpr), n-1)
+    )
+    else if n < 0 then
+    (
+      from_expr Pow(Mul(evalExpr, evalExpr), n+1)
+    )
+
+  )
+  | Pos(expr)         -> 
+  (
+                                                (* Need to fix *)
+    let evalExpr = from_expr expr in
+    Term(evalExpr, 0);
+    
+  )
+  | Neg(expr)         ->  
+  (
+    let evalExpr = from_expr expr in
+    Times(Term(-1, 0); Term(evalExpr, 0));
+  )
+
+    (* Term(0,0) TODO *)
 
 (* 
   Compute degree of a polynomial expression.
@@ -29,7 +80,7 @@ let from_expr (_e: Expr.expr) : pExp =
   Hint 2: Degree of Plus[...] is the max of the degree of args
   Hint 3: Degree of Times[...] is the sum of the degree of args 
 *)
-let rec degree (_e:pExp): int =
+let degree (_e:pExp): int =
   match _e with
   | Term(n,m) -> m
   | Plus(p::ps) -> if degree p > degree (Plus ps) then degree p else degree (Plus ps )
@@ -54,19 +105,9 @@ let compare (e1: pExp) (e2: pExp) : bool =
   Hint 1: Print () around elements that are not Term() 
   Hint 2: Recurse on the elements of Plus[..] or Times[..]
 *)
-let rec print_pExp (_e: pExp): unit =
-  match _e with
-  | Term(0,_) -> ();
-  | Term(a,0) -> string_of_int a |> print_string;
-  | Term(a,e) -> Printf.printf " %dx^%d " a e;
-  | Plus(ps) -> 
-      let add_print p =
-        print_pExp p; print_string ") + (" in
-      Printf.printf "("; List.iter add_print ps; Printf.printf ")";
-  | Times(ps) -> 
-      let mult_print p =
-        print_pExp p; print_string ")(" in
-      Printf.printf "("; List.iter mult_print ps; Printf.printf ")";
+let print_pExp (_e: pExp): unit =
+  (* TODO *)
+  Printf.printf("Not implemented");
   print_newline()
 
 (* 
