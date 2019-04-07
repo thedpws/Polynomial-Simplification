@@ -144,20 +144,29 @@ let rec sort (l: pExp): pExp =
   Hint 1: Print () around elements that are not Term() 
   Hint 2: Recurse on the elements of Plus[..] or Times[..]
 *)
+let rec print_pExp_d (_e: pExp): unit =
+  match _e with
+  | Term(a,e) -> Printf.printf "Term(%d,%d)" a e
+  | Plus(p) -> Printf.printf "Plus("; List.iter print_pExp_d p; print_string ")"
+  | Times(p) -> Printf.printf "Times("; List.iter print_pExp_d p; print_string ")"
+  | _ -> print_string "oops"
+
 let rec print_pExp (_e: pExp): unit =
   match _e with
-  | Term(0,_) -> ();
-  | Term(a,0) -> string_of_int a |> print_string;
-  | Term(a,e) -> Printf.printf " %dx^%d " a e;
-  | Plus(ps) -> 
+  | Term(0,_) -> ()
+  | Term(a,0) -> string_of_int a |> print_string
+  | Term(a,1) -> Printf.printf "%dx" a
+  | Term(a,e) -> Printf.printf "%dx^%d" a e
+  | Plus(p::ps) ->
+          print_string "("; print_pExp p; print_string ")";
       let add_print p =
-        print_pExp p; print_string ") + (" in
-      Printf.printf "("; List.iter add_print ps; Printf.printf ")";
+          print_string " + ("; print_pExp p; print_string ")" in
+      List.iter add_print ps
   | Times(ps) -> 
       let mult_print p =
-        print_pExp p; print_string ")(" in
-      Printf.printf "("; List.iter mult_print ps; Printf.printf ")";
-  print_newline()
+          print_string "("; print_pExp p; print_string ")" in
+      List.iter mult_print ps
+  | _ -> print_string "oops"
 
 (* 
   Function to simplify (one pass) pExpr
@@ -210,29 +219,49 @@ let rec flatten (p: pExp): pExp =
     | Plus(_) -> flattenPlus p
     | Times(_) -> flattenTimes p
     | Term(_,_) -> p
+
 and flattenPlus (_p: pExp): pExp =
     match _p with
+    | Plus([pp]) -> flatten pp
     | Plus(pp::pps) -> 
         (
         match pp with
-        | Plus(s) -> flattenPlus ( Plus(s @ pps )) (* Plus -> flatten and extract *) (* Recursion: look *)
+        | Plus(s) -> flatten ( Plus(s @ pps )) (* Plus -> flatten and extract *) (* Recursion: look *)
         | _         -> 
-                let recursed = flattenPlus ( Plus(pps) ) in
+                let recursed = flatten ( Plus(pps) ) in
                 let other = flatten pp in
-                ( Plus(other::(extract recursed)))
+                (* print_pExp_d recursed; print_endline "<- recursed"; print_pExp_d other; print_endline "<- other"; *)
+                (
+                match other,recursed with
+                | Plus(x1), Plus(x2) -> Plus(x1@x2)
+                | Times(x1), Times(x2) -> Times(x1@x2)
+                | Plus(x1), Term(_) -> Plus(x1@[recursed])
+                | Times(x1), Term(_) -> Times(x1@[recursed])
+                | _ -> Plus(other::(extract recursed))
+                )
         )
+    | Plus([]) -> _p
     | _ -> print_endline "help"; Term(0,0)
 and flattenTimes (_p: pExp): pExp =
     match _p with
+    | Times([pp]) -> flatten pp
     | Times(pp::pps) -> 
         (
         match pp with
-        | Times(s) -> flattenTimes ( Times(s @ pps) ) (* Times -> flatten and extract *) (* Recursion: look *)
+        | Times(s) -> flatten ( Times(s @ pps) ) (* Times -> flatten and extract *) (* Recursion: look *)
         | _         -> 
-                let recursed = flattenTimes ( Times(pps )) in
+                let recursed = flatten ( Times(pps )) in
                 let other = flatten pp in
-                ( Times(other::(extract recursed)))
+                (
+                match other,recursed with
+                | Plus(x1), Plus(x2) -> Plus(x1@x2)
+                | Times(x1), Times(x2) -> Times(x1@x2)
+                | Plus(x1), Term(_) -> Plus(x1@[recursed])
+                | Times(x1), Term(_) -> Times(x1@[recursed])
+                | _ -> Times(other::(extract recursed))
+                )
         )
+    | Times([]) -> _p
     | _ -> print_endline "help"; Term(0,0)
 
     (*
