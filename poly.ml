@@ -44,28 +44,62 @@ let rec from_expr (_e: Expr.expr) : pExp =
   | Pow(expr, n)     -> 
   (
     if n > 0 then from_expr (Mul(expr, Pow(expr, n-1)))
-    else if n < 0 then from_expr (Mul(expr, Pow(expr, n+1)))
-    else from_expr expr
-  )
-  | Pos(expr)         -> 
-  (
-    (* Need to fix *)
-    
-    let evalExpr = from_expr expr in
-    match expr with
-    | Num(n) ->
+    else if n = 0 then Term(1,0)
+    (* 
+    else if n = -1 then 
     (
-      if n < 0 then Times([Term(-1*n, 0); evalExpr])
+      match expr with
+      | Var(v)            -> Term(1, n)
+      | Add(expr1, expr2) -> 
+      | Sub(expr1, expr2) ->
+      | Mul(expr1, expr2) -> 
+      | _                 -> Term(0,0)
+    )
+    else if n < -1 then from_expr (Mul(expr, Pow(expr, n+1)))  
+    *)
+    else from_expr expr                                         (* exponent = 1 *)
+  )
+  | _ -> Term(0,0)
+  (* | Pos(expr)         -> 
+  (
+    match expr with
+    | Num(n)            ->
+    (
+      let evalExpr = from_expr expr in
+      if n < 0 then Times([Term(-1, 0); evalExpr])
       else evalExpr
     )
-    | _ -> evalExpr
+    | Var(v)            -> from_expr expr
+    | Add(expr1, expr2) -> 
+    (
+      let evalExpr1 = from_expr expr1 in
+      let evalExpr2 = from_expr expr2 in
+    )
+    | Sub(expr1, expr2) -> 
+    (
+      let evalExpr1 = from_expr expr1 in
+      let evalExpr2 = from_expr expr2 in
+
+    )
+    | Mul(expr1, expr2) ->
+    (
+      let evalExpr1 = from_expr expr1 in
+      let evalExpr2 = from_expr expr2 in
+    )
+    | Pow(expr1, num)    -> 
+    (
+      let evalExpr1 = from_expr expr1 in
+      if (num mod 2) = 1 then 
+      else from_expr expr
+    )
+    | Neg(expr1)         -> from_expr expr1
     
   )
   | Neg(expr)         ->  
   (
     let evalExpr = from_expr expr in
     Times([Term(-1, 0); evalExpr])
-  )
+  ) *)
 
 (* 
   Compute degree of a polynomial expression.
@@ -85,8 +119,21 @@ let rec degree (_e:pExp): int =
   to "normalize them". This way, terms that need to be reduced
   show up one after another.
   *)
+(*
 let compare (e1: pExp) (e2: pExp) : bool =
   degree e1 > degree e2
+(* returns true if in order *)
+  *)
+
+let rec sort (l: pExp): pExp =
+    match l with
+    | Plus(p1::[])
+    | Times(p1::[])     -> l
+
+    | Plus(p1::p2::[])   -> if degree p1 > degree p2 then Plus(p2::[p1]) else l
+    | Times(p1::p2::[])   -> if degree p1 > degree p2 then Times(p2::[p1]) else l
+    | Plus(p1::p2::ps)    -> if degree p1 > degree p2 then Plus(p2::(sort p2::ps)) else Plus(p1::(sort p2::ps))
+    | Times(p1::p2::ps)    -> if degree p1 > degree p2 then Times(p2::(sort p2::ps)) else Times(p1::(sort p2::ps))
 
 (* Print a pExpr nicely 
   Term(3,0) -> 3
@@ -127,10 +174,87 @@ let rec print_pExp (_e: pExp): unit =
       => Plus[Term(2,3); Term(6,5)]
   Hint 6: Find other situations that can arise
 *)
+
+
+let rec multiply (p1: pExp) (p2: pExp) : pExp =
+    match (p1, p2) with
+    | (Times(ts), Term(_,_))     -> Times (p2::ts) (* 5x2 • 3  = (5x2)(3)  *)
+    | (Times(ts), Plus(ps))  -> 
+            (
+            match ps with
+            | pp::pps        -> Plus( (multiply p1 pp)::[(multiply p1 (Plus(pps)))] )  (* 5xx • (x+2+3)    = 5xxx + { 5xx • (2+3) } *)
+            | []            -> p1
+            )
+    | (Times(ts), Times(tss)) -> Times(ts @ tss) (* Append times to the list *)
+    | (Plus(_), Times(_))         -> multiply p2 p1 (* Reverse the order *)
+    | (Plus(_), Term(_,_))          -> Times([p2]) |> multiply p1
+    | (Plus(p1::p1s), Plus(_))          -> (Plus( multiply p1 p2 :: [multiply (Plus(p1s)) p2])) (* (5 + x) • (x + 3 + x) = 5•(x+3+x) + x•(x+3+x) *)
+    | (Term(_,_), Times(_))         -> multiply p2 p1
+    | (Term(_,_), Plus(_))          -> multiply p2 p1
+    | (Term(_,_), Term(_,_))      -> Times([p1 ; p2])         (* 5 • 10x  = (5)(10x)  *)
+
+(* If 1 elem in Plus/Times, flatten to Term *)
+(* Call flatten on every element in the list *)
+(* If same type as toptype, extract. *)
+(* Else, flatten *)
+
+(* Extracts the pExpressions from Plus/Times *)
+let extract (p: pExp): pExp list =
+    match p with
+    | Plus(x) -> x
+    | Times(x) -> x
+    | _ -> [p]
+
+let rec flatten (p: pExp): pExp =
+    match p with
+    | Plus(_) -> flattenPlus p
+    | Times(_) -> flattenTimes p
+    | Term(_,_) -> p
+and flattenPlus (_p: pExp): pExp =
+    match _p with
+    | Plus(pp::pps) -> 
+        (
+        match pp with
+        | Plus(s) -> flattenPlus ( Plus(s @ pps )) (* Plus -> flatten and extract *) (* Recursion: look *)
+        | _         -> 
+                let recursed = flattenPlus ( Plus(pps) ) in
+                let other = flatten pp in
+                ( Plus(other::(extract recursed)))
+        )
+    | _ -> print_endline "help"; Term(0,0)
+and flattenTimes (_p: pExp): pExp =
+    match _p with
+    | Times(pp::pps) -> 
+        (
+        match pp with
+        | Times(s) -> flattenTimes ( Times(s @ pps) ) (* Times -> flatten and extract *) (* Recursion: look *)
+        | _         -> 
+                let recursed = flattenTimes ( Times(pps )) in
+                let other = flatten pp in
+                ( Times(other::(extract recursed)))
+        )
+    | _ -> print_endline "help"; Term(0,0)
+
+    (*
+let rec reduce (p: pExp): pExp =
+    match p with
+    | Term -> p
+    | Plus(ps) -> (* for each elem, look for a compatible term to add. If found, call again on self. If not, call on tail *)
+    | Times(ts) -> (* same *)
+            *)
+
+
+    (*
+let rec distribute (arg1: Times) (arg2: Plus) : Plus =
+    (* For each in Plus, multiply by times. *)
+    let rval = [] in
+    match arg2 with
+    | p::[]     -> multiply arg1 p
 (* let rec add (p1: pExp) (p2: pExp) : Plus =
   match (p1, p2) with
   | ()
  *)
+*)
 
 let simplify1 (e:pExp): pExp =
     e
