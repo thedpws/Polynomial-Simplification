@@ -85,11 +85,15 @@ let compare (e1: pExp) (e2: pExp) : bool =
 (* returns true if in order *)
   *)
 
-let rec sort (_: Plus(l)) : pExp list =
+let rec sort (l: pExp): pExp =
     match l with
-    | p1::[]        -> [p1]
-    | p1::p2::[]    -> if degree p1 > degree p2 then p2::[p1] else l
-    | p1::p2::ps    -> if degree p1 > degree p2 then p2::(sort p2::ps) else p1::(sort p2::ps)
+    | Plus(p1::[])
+    | Times(p1::[])     -> l
+
+    | Plus(p1::p2::[])   -> if degree p1 > degree p2 then Plus(p2::[p1]) else l
+    | Times(p1::p2::[])   -> if degree p1 > degree p2 then Times(p2::[p1]) else l
+    | Plus(p1::p2::ps)    -> if degree p1 > degree p2 then Plus(p2::(sort p2::ps)) else Plus(p1::(sort p2::ps))
+    | Times(p1::p2::ps)    -> if degree p1 > degree p2 then Times(p2::(sort p2::ps)) else Times(p1::(sort p2::ps))
 
 (* Print a pExpr nicely 
   Term(3,0) -> 3
@@ -137,30 +141,25 @@ let rec print_pExp (_e: pExp): unit =
 
 let rec multiply (p1: pExp) (p2: pExp) : pExp =
     match (p1, p2) with
-    | (Times(ts), Term)     -> Times (p2::ts) (* 5x2 • 3  = (5x2)(3)  *)
-    | (Times(ts), Plus(ps)  -> 
+    | (Times(ts), Term(_,_))     -> Times (p2::ts) (* 5x2 • 3  = (5x2)(3)  *)
+    | (Times(ts), Plus(ps))  -> 
             (
             match ps with
-            | pp::pps        -> Plus( (multiply ts pp)::[(multiply ts Plus(pps))] )  (* 5xx • (x+2+3)    = 5xxx + { 5xx • (t+3) } *)
+            | pp::pps        -> Plus( (multiply p1 pp)::[(multiply p1 (Plus(pps)))] )  (* 5xx • (x+2+3)    = 5xxx + { 5xx • (t+3) } *)
             | []            -> p1
             )
-    | (Times(ts), Times(tss) -> Times(ts @ tss) (* Append times to the list *)
-    | (Plus, Times)         -> multiply p2 p1 (* Reverse the order *)
-    | (Plus, Term)          -> Times([p2]) |> multiply p1
-    | (Plus(p1::p1s), Plus)          -> Plus( multiply p1 p2 :: [multiply Plus(p1s) p2]) (* (5 + x) • (x + 3 + x) = 5•(x+3+x) + x•(x+3+x) *)
-    | (Term, Times)         -> multiply p2 p1
-    | (Term, Plus)          -> multiply p2 p1
-    | (Term, Term)      -> Times([p1 ; p2])         (* 5 • 10x  = (5)(10x)  *)
+    | (Times(ts), Times(tss)) -> Times(ts @ tss) (* Append times to the list *)
+    | (Plus(_), Times(_))         -> multiply p2 p1 (* Reverse the order *)
+    | (Plus(_), Term(_,_))          -> Times([p2]) |> multiply p1
+    | (Plus(p1::p1s), Plus(_))          -> (Plus( multiply p1 p2 :: [multiply (Plus(p1s)) p2])) (* (5 + x) • (x + 3 + x) = 5•(x+3+x) + x•(x+3+x) *)
+    | (Term(_,_), Times(_))         -> multiply p2 p1
+    | (Term(_,_), Plus(_))          -> multiply p2 p1
+    | (Term(_,_), Term(_,_))      -> Times([p1 ; p2])         (* 5 • 10x  = (5)(10x)  *)
 
 (* If 1 elem in Plus/Times, flatten to Term *)
 (* Call flatten on every element in the list *)
 (* If same type as toptype, extract. *)
 (* Else, flatten *)
-let rec flatten (p: pExp): pExp =
-    match p with
-    | Plus -> flattenPlus p
-    | Times -> flattenTimes p
-    | Term -> p
 
 (* Extracts the pExpressions from Plus/Times *)
 let extract (p: pExp): pExp list =
@@ -169,31 +168,46 @@ let extract (p: pExp): pExp list =
     | Times(x) -> x
     | _ -> [p]
 
-let rec flattenPlus (p: Plus(pp::pps)): pExp =
-    match pp with
-    | Plus(s) -> flattenPlus Plus(s @ pps) (* Plus -> flatten and extract *) (* Recursion: look *)
-    | _         -> 
-            let recursed = flattenPlus Plus(pps) in
-            let other = flatten pp in
-            Plus(other::(extract recursed))
-    )
-let rec flattenTimes (p: Times(pp::pps)): pExp =
-    match pp with
-    | Times(s) -> flattenTimes Times(s @ pps) (* Times -> flatten and extract *) (* Recursion: look *)
-    | _         -> 
-            let Times(recursed) = flattenTimes Times(pps) in
-            let other = flatten pp in
-            Times(other::(extract recursed))
-    )
+let rec flatten (p: pExp): pExp =
+    match p with
+    | Plus(_) -> flattenPlus p
+    | Times(_) -> flattenTimes p
+    | Term(_,_) -> p
+and flattenPlus (_p: pExp): pExp =
+    match _p with
+    | Plus(pp::pps) -> 
+        (
+        match pp with
+        | Plus(s) -> flattenPlus ( Plus(s @ pps )) (* Plus -> flatten and extract *) (* Recursion: look *)
+        | _         -> 
+                let recursed = flattenPlus ( Plus(pps) ) in
+                let other = flatten pp in
+                ( Plus(other::(extract recursed)))
+        )
+    | _ -> print_endline "help"; Term(0,0)
+and flattenTimes (_p: pExp): pExp =
+    match _p with
+    | Times(pp::pps) -> 
+        (
+        match pp with
+        | Times(s) -> flattenTimes ( Times(s @ pps) ) (* Times -> flatten and extract *) (* Recursion: look *)
+        | _         -> 
+                let recursed = flattenTimes ( Times(pps )) in
+                let other = flatten pp in
+                ( Times(other::(extract recursed)))
+        )
+    | _ -> print_endline "help"; Term(0,0)
 
+    (*
 let rec reduce (p: pExp): pExp =
     match p with
     | Term -> p
     | Plus(ps) -> (* for each elem, look for a compatible term to add. If found, call again on self. If not, call on tail *)
     | Times(ts) -> (* same *)
+            *)
 
-let rec flattenTimes (p: pExp)
 
+    (*
 let rec distribute (arg1: Times) (arg2: Plus) : Plus =
     (* For each in Plus, multiply by times. *)
     let rval = [] in
@@ -203,6 +217,7 @@ let rec distribute (arg1: Times) (arg2: Plus) : Plus =
   match (p1, p2) with
   | ()
  *)
+*)
 
 let simplify1 (e:pExp): pExp =
     e
@@ -225,7 +240,3 @@ let rec simplify (e:pExp): pExp =
         e
       else  
         simplify(rE)
-
-
-
-
