@@ -34,12 +34,14 @@ let test11 = equal_pExp (Plus([Term(3,2); Term(1,2)])) (Plus([Term(3,2); Term(2,
 let test11 = equal_pExp (Plus([Term(3,2)])) (Plus([Term(3,2); Term(3,2)])) |> string_of_bool |> print_endline            (* 3x^2 == 3x^2 + 3x^2 *)
 let test11 = equal_pExp (Plus([Term(3,2); Term(2,2)])) (Plus([Term(3,2); Term(2,2)])) |> string_of_bool |> print_endline (* 3x^2 + 2x^2 == 3x^2 + 2x^2*)
 
-(* let filename = Sys.argv.(1) *)
 
-(*   open_in filename |> *)
-(*   Lexing.from_channel |> *)
-(*   Parser.main Lexer.token |> *)
-(*   print_expr |> *)
-(*   from_expr |> *)
-(*   simplify |> *)
-(*   print_pExp *)
+(* let filename = Sys.argv.(1)
+
+let () = 
+  open_in filename |>
+  Lexing.from_channel |>
+  Parser.main Lexer.token |>
+  print_expr |>
+  from_expr |>
+  simplify |>
+  print_pExp *)
