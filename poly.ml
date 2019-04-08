@@ -14,6 +14,24 @@ type pExp =
   *)
   | Times of pExp list (* List of terms multiplied *)
 
+let rec print_pExp (_e: pExp): unit =
+  match _e with
+  | Term(0,_) -> ()
+  | Term(a,0) -> string_of_int a |> print_string
+  | Term(a,1) -> Printf.printf "%dx" a
+  | Term(a,e) -> Printf.printf "%dx^%d" a e
+  | Plus(p::ps) ->
+          print_string "("; print_pExp p; print_string ")";
+      let add_print p =
+          print_string " + ("; print_pExp p; print_string ")" in
+      List.iter add_print ps
+  | Times(ps) -> 
+      let mult_print p =
+          print_string "("; print_pExp p; print_string ")" in
+      List.iter mult_print ps
+  | _ -> print_string "oops"
+
+
 
 (*
   Function to traslate between AST expressions
@@ -125,15 +143,127 @@ let compare (e1: pExp) (e2: pExp) : bool =
 (* returns true if in order *)
   *)
 
-let rec sort (l: pExp): pExp =
-    match l with
-    | Plus(p1::[])
-    | Times(p1::[])     -> l
+let sorted (p1: pExp) (p2: pExp) =
+    match p1,p2 with
+    | Term(_,_), Term(_,_) -> degree p1 > degree p2
+    | Term(_,_), _ -> true
+    | Plus(_), Times(_) -> true
+    | _ -> false
+(* Sort all terms  > Plus/Times *)
+(* let rec sort (l: pExp): pExp = *)
+(*     match l with *)
+(*     | Plus(p1::[]) *)
+(*     | Times(p1::[])     -> sort p1 *)
 
-    | Plus(p1::p2::[])   -> if degree p1 > degree p2 then Plus(p2::[p1]) else l
-    | Times(p1::p2::[])   -> if degree p1 > degree p2 then Times(p2::[p1]) else l
-    | Plus(p1::p2::ps)    -> if degree p1 > degree p2 then Plus(p2::(sort p2::ps)) else Plus(p1::(sort p2::ps))
-    | Times(p1::p2::ps)    -> if degree p1 > degree p2 then Times(p2::(sort p2::ps)) else Times(p1::(sort p2::ps))
+(*     | Plus(p1::p2::[])   -> if not (sorted p1 p2) then Plus(p2::[p1]) else l *)
+(*     | Times(p1::p2::[])   -> if not ( sorted p1 p2 ) then Times(sort p2::[p1]) else l *)
+(*     | Plus(p1::p2::ps)    -> if not ( sorted p1 p2 ) then Plus(p2::(sort p1::ps)) else Plus(p1::(sort p2::ps)) *)
+(*     | Times(p1::p2::ps)    -> if not ( sorted p1 p2 ) then Times(p2::(sort p1::ps)) else Times(p1::(sort p2::ps)) *)
+(*     | Plus([]) -> l *)
+(*     | Times([]) -> l *)
+(*     | Term(_,_) -> l *)
+(*     | _ -> print_string "oops"; l *)
+
+
+
+let rec equalQuestionMark (l1: pExp list) (l2:pExp list): bool =
+    match l1,l2 with
+    | [],[] -> true
+    | p::ps, q::qs ->
+            (
+                match p,q with
+                | Term(a1,e1), Term(a2,e2) -> (a1 = a2) && ( e1 = e2 ) && equalQuestionMark ps qs
+                | Plus(pp), Plus(qq)
+                | Times(pp), Times(qq) -> equalQuestionMark pp qq && equalQuestionMark ps qs
+                | _,_ -> false
+            )
+    | _,_ -> print_endline "oops"; false
+            
+(* let rec sort_help (l: pExp list) (*bool,pExp list*) = *)
+(*     match l with *)
+(*     | p1::p2::ps -> *) 
+(*             if not (sorted p1 p2) *) 
+(*             then let _, sortlist = sort_help (p1::ps) in *)
+(*             true, p1::sortlist *)
+(*             else let (sort2_bool, sort2_list) = sort_help (p1::ps) in *)
+(*             sort2_bool, p2::sort2_list *)
+(*     | _ -> false,l *)
+
+(* let rec sort (l: pExp list): pExp list = *)
+(*     let prev = l in *)
+(*     let _,after = sort_help l in *)
+(*     if (sortEqual prev after) then after *)
+(*     else sort after *)
+
+
+let compatible (p1: pExp) (p2: pExp): bool =
+    match p1,p2 with
+    | Term(_,e1),Term(_,e2) -> e1 = e2
+    | Times(_), Times(_)    -> true
+    | Plus(_), Plus(_)      -> true
+    | _                     -> false
+
+(* ReduceAddition adds like terms within a list *)
+let rec reduceAddition (_p: pExp list): pExp list =
+    match _p with
+    | p1::[]    -> _p
+    | p1::p2::ps ->
+            (
+            match p1,p2 with
+            | Term(a1,e1),Term(a2,e2) -> 
+                    if compatible p1 p2 
+                    then let newTerm = Term(a1+a2,e1) in
+                    newTerm::ps
+                    else if (not (ps = [])) then ((p2)::(reduceAddition(p1::ps)))
+                    else _p
+            | _ -> 
+                    (
+                    match ps with
+                    | [] -> _p
+                    | _ -> print_string"semi-OOPSIE"; (reduce p2)::(reduceAddition(p1::ps))
+                    )
+            )
+    | _ -> print_string"reduce oopsie!"; _p
+
+(* ReduceMultipication multiplies like terms *)
+and reduceMultiplication (_p: pExp list): pExp list =
+    match _p with
+    | p1::[]    -> _p
+    | p1::p2::ps ->
+            (
+            match p1,p2 with
+            | Term(a1,e1),Term(a2,e2) -> 
+                    let newTerm = Term(a1*a2, e1+e2) in
+                    if (not (ps = [])) then newTerm::ps
+                    else [newTerm]
+            | _ ->
+                    (
+                    match ps with
+                    | [] -> _p
+                    | _ -> print_string"semi-OOPSIE";( (reduce p2)::(reduceMultiplication(p1::ps)))
+                    )
+            )
+    | _ -> print_string"reduce oopsie!"; _p
+
+and reduce (p: pExp): pExp =
+    match p with
+    | Plus(xs) ->
+            (
+                let reducedXs = reduceAddition xs in
+                (* print_string "cunt"; print_pExp (Times(xs)); print_pExp (Times(reducedXs)); *)
+                if equalQuestionMark xs reducedXs
+                then p
+                else reduce (Plus(reducedXs))
+            )
+    | Times(xs) ->
+            (
+                let reducedXs = reduceMultiplication xs in
+                (* print_string "cunt"; print_pExp (Times(xs)); print_pExp (Times(reducedXs)); *)
+                if equalQuestionMark xs reducedXs
+                then p
+                else reduce (Times(reducedXs))
+            )
+    | _ -> print_string "Reeeduuuuce oopsie!!"; p
 
 (* Print a pExpr nicely 
   Term(3,0) -> 3
@@ -149,23 +279,6 @@ let rec print_pExp_d (_e: pExp): unit =
   | Term(a,e) -> Printf.printf "Term(%d,%d)" a e
   | Plus(p) -> Printf.printf "Plus("; List.iter print_pExp_d p; print_string ")"
   | Times(p) -> Printf.printf "Times("; List.iter print_pExp_d p; print_string ")"
-  | _ -> print_string "oops"
-
-let rec print_pExp (_e: pExp): unit =
-  match _e with
-  | Term(0,_) -> ()
-  | Term(a,0) -> string_of_int a |> print_string
-  | Term(a,1) -> Printf.printf "%dx" a
-  | Term(a,e) -> Printf.printf "%dx^%d" a e
-  | Plus(p::ps) ->
-          print_string "("; print_pExp p; print_string ")";
-      let add_print p =
-          print_string " + ("; print_pExp p; print_string ")" in
-      List.iter add_print ps
-  | Times(ps) -> 
-      let mult_print p =
-          print_string "("; print_pExp p; print_string ")" in
-      List.iter mult_print ps
   | _ -> print_string "oops"
 
 (* 
