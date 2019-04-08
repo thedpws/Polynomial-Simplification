@@ -296,16 +296,28 @@ let rec print_pExp_d (_e: pExp): unit =
       => Plus[Term(2,3); Term(6,5)]
   Hint 6: Find other situations that can arise
 *)
-
+let rec add (p1: pExp) (p2:pExp) : pExp = 
+  match (p1, p2) with
+  (* | (Term(_,_), Term(_,_))  -> Plus(p1::p2) *)
+  | (Plus(ps), Term(_,_))   -> Plus(p2::ps)
+  | (Term(_,_), Plus(_))    -> add p2 p1
+  (* | (Times(_), Term(_,_))  -> Plus(p1::p2) *)
+  (* | (Term(_,_), Times(_))   -> add p2 p1 *)
+  | (Plus(ps), Plus(pss))   -> Plus(ps @ pss)
+  (* | (Times(ts), Times(tss)) -> Plus(p1::p2) *)
+  | (Times(_), Plus(ps))     -> Plus(p1::ps)
+  (* | (Pluse(), Times())      -> add p2 p1 *)
+  | (_,_) -> Plus([p1; p2])
+   
 
 let rec multiply (p1: pExp) (p2: pExp) : pExp =
     match (p1, p2) with
-    | (Times(ts), Term(_,_))     -> Times (p2::ts) (* 5x2 • 3  = (5x2)(3)  *)
+    | (Times(ts), Term(_,_)) -> Times (p2::ts) (* 5x2 • 3  = (5x2)(3)  *)
     | (Times(ts), Plus(ps))  -> 
             (
             match ps with
             | pp::pps        -> Plus( (multiply p1 pp)::[(multiply p1 (Plus(pps)))] )  (* 5xx • (x+2+3)    = 5xxx + { 5xx • (2+3) } *)
-            | []            -> p1
+            | []             -> p1
             )
     | (Times(ts), Times(tss)) -> Times(ts @ tss) (* Append times to the list *)
     | (Plus(_), Times(_))         -> multiply p2 p1 (* Reverse the order *)
@@ -314,6 +326,7 @@ let rec multiply (p1: pExp) (p2: pExp) : pExp =
     | (Term(_,_), Times(_))         -> multiply p2 p1
     | (Term(_,_), Plus(_))          -> multiply p2 p1
     | (Term(_,_), Term(_,_))      -> Times([p1 ; p2])         (* 5 • 10x  = (5)(10x)  *)
+    | (_,_) -> p1
 
 (* If 1 elem in Plus/Times, flatten to Term *)
 (* Call flatten on every element in the list *)
@@ -405,8 +418,33 @@ let simplify1 (e:pExp): pExp =
   Compute if two pExp are the same 
   Make sure this code works before you work on simplify1  
 *)
-let equal_pExp (_e1: pExp) (_e2: pExp) :bool =
-  true
+let rec equal_pExp (_e1: pExp) (_e2: pExp) : bool =
+  match _e1 with
+  | Term(a1, e1) -> 
+  (
+    match _e2 with
+    | Term (a2, e2) -> 
+    (
+      if (a1 = a2 && e1 = e2) then true
+      else false
+    )
+    | _ -> false
+  )
+  | Plus(ps1::pss1) ->
+  (
+    match _e2 with
+    | Plus(ps2::pss2) -> ((equal_pExp ps1 ps2) && (equal_pExp (Plus(pss1)) (Plus(pss2))))
+    | _               -> false
+  )
+  | Plus([]) ->
+  (
+    match _e2 with
+    | Plus([]) -> true
+    | Plus(ps) -> false
+    | _        -> false
+  )
+  | Times(ts) -> false
+  | _         -> false
 
 (* Fixed point version of simplify1 
   i.e. Apply simplify1 until no 

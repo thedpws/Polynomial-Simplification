@@ -61,6 +61,10 @@ let reduce2 = (Times([ x1 ; (Plus([ x1 ; x2 ])) ; x1 ]))
  *
 let _ = main reduce2
 
+let test11 = equal_pExp (Plus([Term(3,2); Term(1,2)])) (Plus([Term(3,2); Term(2,2)])) |> string_of_bool |> print_endline (* 3x^2 + x^2 == 3x^2 + 2x^2*)
+let test11 = equal_pExp (Plus([Term(3,2)])) (Plus([Term(3,2); Term(3,2)])) |> string_of_bool |> print_endline            (* 3x^2 == 3x^2 + 3x^2 *)
+let test11 = equal_pExp (Plus([Term(3,2); Term(2,2)])) (Plus([Term(3,2); Term(2,2)])) |> string_of_bool |> print_endline (* 3x^2 + 2x^2 == 3x^2 + 2x^2*)
+
 (* let filename = Sys.argv.(1) *)
 
 (*   open_in filename |> *)
