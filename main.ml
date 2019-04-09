@@ -58,21 +58,35 @@ let reduce1 = (Plus([ x1 ; (Times([ x1 ; x2 ])) ; x1 ]))
 (* x + (x*x^2) + x  |-> (x^3 + 2x) *)
 let reduce2 = (Times([ x1 ; (Plus([ x1 ; x2 ])) ; x1 ]))
 (* x • (x + x^2) • x |-> x^2 • (x + x^2) *)
- *
-let _ = main reduce2
+
+let reduce3 = Times([ (Plus([ x1 ; Term(1,0) ])) ; (Plus([ x1 ; Term(1,0) ]))  ])
+
+let _ = main reduce3
 
 let test11 = equal_pExp (Plus([Term(3,2); Term(1,2)])) (Plus([Term(3,2); Term(2,2)])) |> string_of_bool |> print_endline (* 3x^2 + x^2 == 3x^2 + 2x^2*)
 let test11 = equal_pExp (Plus([Term(3,2)])) (Plus([Term(3,2); Term(3,2)])) |> string_of_bool |> print_endline            (* 3x^2 == 3x^2 + 3x^2 *)
 let test11 = equal_pExp (Plus([Term(3,2); Term(2,2)])) (Plus([Term(3,2); Term(2,2)])) |> string_of_bool |> print_endline (* 3x^2 + 2x^2 == 3x^2 + 2x^2*)
 
+(* let filename = Sys.argv.(1) *)
+(* let () =  *)
+(*   open_in filename |> *)
+(*   Lexing.from_channel |> *)
+(*   Parser.main Lexer.token |> *)
+(*   print_expr |> *)
+(*   from_expr |> *)
+(*   simplify |> *)
+(*   print_pExp *)
 
-(* let filename = Sys.argv.(1)
+let x = Term(1,1)
+let one = Term(1,0)
+let minusOne = Term(-1,0)
+let main test = test |> flatten |> reduce |> flatten |> simplify1 |> print_pExp
 
-let () = 
-  open_in filename |>
-  Lexing.from_channel |>
-  Parser.main Lexer.token |>
-  print_expr |>
-  from_expr |>
-  simplify |>
-  print_pExp *)
+let simplify2 = Plus([ x1 ; x1])
+let simplify3 = Times([ x1 ; x1 ; x2 ; (Plus([ x1 ; x2 ])) ])
+let simplify4 = Times([ one ; minusOne ])
+let simplify5 = Plus([ one ; minusOne ])
+let simplify6 = Times([ x; Plus([ x ; one ]) ])
+let simplify7 = Times([ one; Plus([ x ; one ]) ])
+let simplify9 = Times([ Plus([ x ; one ]) ; Plus ([ x ; minusOne ]) ])
+let _ = main simplify7
