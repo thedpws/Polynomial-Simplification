@@ -68,21 +68,26 @@ let rec from_expr (_e: Expr.expr) : pExp =
   )
   | Pow(expr, n)     -> 
   (
-    if n > 0 then from_expr (Mul(expr, Pow(expr, n-1)))
-    else if n = 0 then Term(1,0)
-    (* 
-    else if n = -1 then 
+    match expr with
+    | Var(v) -> Term(1,n)
+    | _ -> 
     (
-      match expr with
-      | Var(v)            -> Term(1, n)
-      | Add(expr1, expr2) -> 
-      | Sub(expr1, expr2) ->
-      | Mul(expr1, expr2) -> 
-      | _                 -> Term(0,0)
+      if n > 0 then from_expr (Mul(expr, Pow(expr, n-1)))
+      else if n = 0 then Term(1,0)
+      else from_expr expr                                         (* exponent = 1 *)
     )
-    else if n < -1 then from_expr (Mul(expr, Pow(expr, n+1)))  
-    *)
-    else from_expr expr                                         (* exponent = 1 *)
+  )
+  | Pos(expr) -> from_expr expr
+  | Neg(expr) -> 
+  (
+    match expr with
+    | Num(n) -> Term(-1*n, 0)
+    | Var(v) -> Term(-1, 1)
+    | _ -> 
+    (
+      let evalExpr = from_expr expr in
+      Times([Term(-1, 0); evalExpr])
+    )
   )
   | _ -> Term(0,0)
   (* | Pos(expr)         -> 
@@ -456,7 +461,7 @@ let rec distribute (arg1: Times) (arg2: Plus) : Plus =
 (* Simplify looks for opportunities to add/multiply *)
 let rec simplify (e:pExp): pExp =
     let before = e in
-    (* let e = flatten e |> reduce |> flatten in *)
+    let e = flatten e |> reduce |> flatten in
     let e = 
         (
     match e with
@@ -465,7 +470,7 @@ let rec simplify (e:pExp): pExp =
             match xs with
             | p1::[] -> p1
             | p1::p2::[] -> add p1 p2
-            | p1::p2::ps -> simplify1 (Plus((add p1 p2)::ps))
+            | p1::p2::ps -> simplify (Plus((add p1 p2)::ps))
             | [] -> print_string "Oh noes adds!"; Term(0,0)
             )
     | Times(xs) ->
@@ -473,15 +478,15 @@ let rec simplify (e:pExp): pExp =
             match xs with
             | p1::[] -> p1
             | p1::p2::[] -> multiply p1 p2
-            | p1::p2::ps -> simplify1 (Times( (multiply p1 p2)::ps ))
+            | p1::p2::ps -> simplify (Times( (multiply p1 p2)::ps ))
             | [] -> print_string "Oh noes times!"; Term(0,0)
             )
     | Term(_) -> e
         ) in
-    (* let e = flatten e |> reduce |> flatten in *)
+    let e = flatten e |> reduce |> flatten in
     let after = e in
     if equal_pExp before after then after
-    else simplify1 after
+    else simplify after
 
 
 

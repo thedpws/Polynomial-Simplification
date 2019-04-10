@@ -4,7 +4,7 @@ open Lexer
 open Poly
 open Expr
 
-let test0 = Term(0,3) (* {nothing} *)
+(* let test0 = Term(0,3) (* {nothing} *)
 let test1 = Term(1,1) (* 1x *)
 let test2 = Plus([test1 ; test1]) (* (1x) + (1x) *)
 let test3 = Times([test1 ; test1]) (* (1x)(1x) *)
@@ -67,20 +67,11 @@ let test11 = equal_pExp (Plus([Term(3,2); Term(1,2)])) (Plus([Term(3,2); Term(2,
 let test11 = equal_pExp (Plus([Term(3,2)])) (Plus([Term(3,2); Term(3,2)])) |> string_of_bool |> print_endline            (* 3x^2 == 3x^2 + 3x^2 *)
 let test11 = equal_pExp (Plus([Term(3,2); Term(2,2)])) (Plus([Term(3,2); Term(2,2)])) |> string_of_bool |> print_endline (* 3x^2 + 2x^2 == 3x^2 + 2x^2*)
 
-(* let filename = Sys.argv.(1) *)
-(* let () =  *)
-(*   open_in filename |> *)
-(*   Lexing.from_channel |> *)
-(*   Parser.main Lexer.token |> *)
-(*   print_expr |> *)
-(*   from_expr |> *)
-(*   simplify |> *)
-(*   print_pExp *)
 
 let x = Term(1,1)
 let one = Term(1,0)
 let minusOne = Term(-1,0)
-let main test = test |> flatten |> reduce |> flatten |> simplify1 |> print_pExp
+let main test = test |> flatten |> reduce |> flatten |> simplify |> print_pExp
 
 let simplify2 = Plus([ x1 ; x1])
 let simplify3 = Times([ x1 ; x1 ; x2 ; (Plus([ x1 ; x2 ])) ])
@@ -89,4 +80,14 @@ let simplify5 = Plus([ one ; minusOne ])
 let simplify6 = Times([ x; Plus([ x ; one ]) ])
 let simplify7 = Times([ one; Plus([ x ; one ]) ])
 let simplify9 = Times([ Plus([ x ; one ]) ; Plus ([ x ; minusOne ]) ])
-let _ = main simplify7
+let _ = main simplify7 *)
+
+let filename = Sys.argv.(1)
+let () = 
+  open_in filename |>
+  Lexing.from_channel |>
+  Parser.main Lexer.token |>
+  print_expr |>
+  from_expr |>
+  simplify |>
+  print_pExp
