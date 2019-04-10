@@ -1,17 +1,7 @@
 (* Sum type to encode efficiently polynomial expressions *)
 type pExp =
-  | Term of int*int (*
-      First int is the constant
-      Second int is the power of x 
-      10  -> Term(10,0)
-      2x -> Term(2,1)
-      3x^20 -> Term(3, 20)
-    *)
-  | Plus of pExp list
-  (*
-    List of terms added
-    Plus([Term(2,1); Term(1,0)])
-  *)
+  | Term of int*int
+  | Plus of pExp list (* List of terms added *)
   | Times of pExp list (* List of terms multiplied *)
   | None
   | Error of string
@@ -24,6 +14,7 @@ let rec delist (l: string list): string =
     | [x] -> x
     | x::xs -> x^(delist xs)
 
+(* Turns p expression into string *)
 let rec string_pExp (_e: pExp): string =
   match _e with
   | Term(a,0) -> string_of_int a
@@ -45,7 +36,7 @@ let rec string_pExp (_e: pExp): string =
   | Error(msg) -> msg
   | _ -> "oopseeeee"
 
-
+(* Turns p expression into debug string *)
 let rec string_pExp_d (p: pExp): string =
     match p with
     | Term(a,e) -> Printf.sprintf "Term(%d,%d)" a e
@@ -53,31 +44,86 @@ let rec string_pExp_d (p: pExp): string =
     | Times(xs) -> "Times("^(List.map string_pExp_d xs |> delist)^")"
     | Error(msg) -> Printf.sprintf "Error: %s" msg
 
+(* Prints p expression as string *)
 let print_pExp (p: pExp): unit =
     print_endline (string_pExp p)
 
-(* let rec print_pExp_d (_e: pExp): unit = *)
-(*   match _e with *)
-(*   | Term(a,e) -> Printf.printf "Term(%d,%d)" a e *)
-(*   | Plus(p) -> Printf.printf "Plus("; List.iter print_pExp_d p; print_string ")" *)
-(*   | Times(p) -> Printf.printf "Times("; List.iter print_pExp_d p; print_string ")" *)
-(*   | _ -> print_string "oopsff" *)
-
-let rec degree (_e:pExp): int =
+(*
+  Function to traslate between AST expressions
+  to pExp expressions
+*)
+let rec from_expr (_e: Expr.expr) : pExp =
   match _e with
-  | Term(n,m) -> m
-  | Plus(p::ps) -> if degree p > degree (Plus ps) then degree p else degree (Plus ps )
-  | Times(p::ps) -> degree p + degree (Times ps)
-  | _ -> 0
-
+  | Num(n)            -> Term(n, 0)
+  | Var(v)            -> Term(1, 1)
+  | Add(expr1, expr2) -> 
+  (
+    let evalExpr1 = from_expr expr1 in
+    let evalExpr2 = from_expr expr2 in
+    Plus([evalExpr1; evalExpr2])                       
+  )
+  | Sub(expr1, expr2) ->
+  (
+    let evalExpr1 = from_expr expr1 in
+    let evalExpr2 = from_expr expr2 in
+    Plus([evalExpr1; Times([Term(-1,0); evalExpr2])])               
+  )
+  | Mul(expr1, expr2) ->
+  (
+    let evalExpr1 = from_expr expr1 in
+    let evalExpr2 = from_expr expr2 in
+    Times([evalExpr1; evalExpr2])                   
+  )
+  | Pow(expr, n)     -> 
+  (
+    match expr with
+    | Var(v) -> Term(1,n)
+    | _ -> 
+    (
+      if n > 0 then from_expr (Mul(expr, Pow(expr, n-1)))
+      else if n = 0 then Term(1,0)
+      else from_expr expr                                         (* exponent = 1 *)
+    )
+  )
+  | Pos(expr) -> from_expr expr
+  | Neg(expr) -> 
+  (
+    match expr with
+    | Num(n) -> Term(-1*n, 0)
+    | Var(v) -> Term(-1, 1)
+    | _ -> 
+    (
+      let evalExpr = from_expr expr in
+      Times([Term(-1, 0); evalExpr])
+    )
+  )
+  | _ -> Term(0,0)
+  (* | Pos(expr)         -> 
+  (
+    match expr with
+    | Num(n)            ->
+    (
+      let evalExpr = from_expr expr in
+      if n < 0 then Times([Term(-1, 0); evalExpr])
+      else evalExpr
+    )
+    | Var(v)            -> from_expr expr
+    | Add(expr1, expr2) -> 
+    (
+      let evalExpr1 = from_expr expr1 in
+      let evalExpr2 = from_expr expr2 in
+    )
+    | Sub(expr1, expr2) -> 
+    (
+      let evalExpr1 = from_expr expr1 in
+      let evalExpr2 = from_expr expr2 in
+    )
+    *)
 
 let rec add (p1: pExp) (p2: pExp): pExp =
-    let prefix = Printf.sprintf "Add: (%s) (%s)\n" (string_pExp_d p1) (string_pExp_d p2) in
     let result =
         (
     match p1, p2 with
-    (* | _,Plus([]) -> add p1 (Term(0,0) *)
-    (* | Plus([]),_ -> add p2 (Term(0,0) ) *)
     | Term(a1,e1),Term(a2,e2) ->
             if e1 = e2 then Term(a1+a2,e2)
             else Plus([p1;p2])
@@ -108,14 +154,13 @@ let rec add (p1: pExp) (p2: pExp): pExp =
     | _,_ -> let msg = Printf.sprintf "Could not add these: (%s) (%s)" (string_pExp p1) (string_pExp p2) in Error(msg)
         ) in
     (* Printf.printf ("Add: (%s)+(%s) = (%s)\n") (string_pExp p1) (string_pExp_d p2) (string_pExp_d result); result *)
-    Printf.printf ("Add: (%s)+(%s) = (%s)\n") (string_pExp p1) (string_pExp p2) (string_pExp result); result
+    (* Printf.printf ("Add: (%s)+(%s) = (%s)\n") (string_pExp p1) (string_pExp p2) (string_pExp result); result *)
+    result
 
 let rec multiply (p1: pExp) (p2: pExp): pExp =
     let result =
         (
     match p1,p2 with
-    (* | None, _ -> multiply (Term (1,0)) p2 *)
-    (* | _ , None -> multiply p1 (Term (1,0)) *)
     | _,Plus([]) -> Term(0,0)
     | _,Times([]) -> p1
 
@@ -164,7 +209,8 @@ let rec multiply (p1: pExp) (p2: pExp): pExp =
             Error(msg)
         ) in
     (* Printf.printf ("Multiply: (%s)*(%s) = (%s)\n") (string_pExp_d p1) (string_pExp_d p2) (string_pExp_d result); result *)
-    Printf.printf ("Multiply: (%s)*(%s) = (%s)\n") (string_pExp p1) (string_pExp p2) (string_pExp result); result
+    (* Printf.printf ("Multiply: (%s)*(%s) = (%s)\n") (string_pExp p1) (string_pExp p2) (string_pExp result); result *)
+    result
 
 
 
@@ -172,7 +218,7 @@ let rec multiply (p1: pExp) (p2: pExp): pExp =
 (* SimplifyPlus :   Times -> SimplifyTimes  | Plus -> extract   | Term -> add       *)
 (* SimplifyTimes:   Plus -> SimplifyPlus    | Times -> extract  | Term -> multiply  *)
 let rec simplify (p: pExp): pExp =
-    (* Printf.printf "###########Simplify: (%s)\n" (string_pExp_d p); *)
+    (* Printf.printf "##### SIMPLIFY: (%s) #####\n" (string_pExp_d p); *)
     match p with
     | Times(x::xs) | Plus(x::xs) ->
             let subresult = simplify x in
@@ -182,47 +228,6 @@ let rec simplify (p: pExp): pExp =
             | Plus(_) -> add subresult (simplify (Plus xs))
             | _ -> Error("oops")
             )
-    (* | Times([]) | Plus([]) -> None *)
     | Error(msg) -> print_endline msg; p
     | _ -> p
 
-(* let rec simplify (p: pExp): pExp = *)
-(*     match p with *)
-(*     | Plus(_) -> simplifyPlus p *)
-(*     | Times(_) -> simplifyTimes p *)
-(*     | _ -> p *)
-(* and simplifyPlus (p: pExp): pExp = *)
-(*     ( *)
-(*     match p with *)
-(*     | None -> None *)
-(*     | Plus(x::xs) -> *)
-(*             ( *)
-(*                 let subresult = *)
-(*                 ( *)
-(*                 match x with *)
-(*                 | Plus(_)   -> simplifyPlus x *)
-(*                 | Times(_)  -> simplifyTimes x *)
-(*                 | _         -> x *)
-(*                 ) *) 
-(*                 in add subresult (simplifyPlus(Plus(xs))) *)
-(*             ) *)
-(*     | _ -> Error("Tried to call simplifyPlus on nonPlus term") *)
-(*     ) *)
-(* and simplifyTimes (p: pExp): pExp = *)
-(*     match p with *)
-(*     | None -> None *)
-(*     | Times(x::xs) -> *)
-(*             ( *)
-(*                 let subresult = *)
-(*                 ( *)
-(*                 match x with *)
-(*                 | Plus(_)   -> simplifyPlus x *)
-(*                 | Times(_)  -> simplifyTimes x *)
-(*                 | _         -> x *)
-(*                 ) *)
-(*                 in multiply subresult (simplifyTimes(Times xs)) *)
-(*             ) *)
-(*     | _ -> Error("Tried to call simplifyTimes on nonTimes term") *)
-
-(* let rec equal_pExp (p1: pExp) (p2: pExp): bool = *)
-            
