@@ -6,8 +6,6 @@ type pExp =
   | None
   | Error of string
 
-
-
 let rec delist (l: string list): string = 
     match l with
     | [] -> ""
