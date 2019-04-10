@@ -98,6 +98,7 @@ let testcase = Times([ x1 ; Plus([ x1 ; x2 ]) ])
 let _ = main simplify7 *)
 
 let filename = Sys.argv.(1)
+
 let () = 
   open_in filename |>
   Lexing.from_channel |>
@@ -105,4 +106,6 @@ let () =
   print_expr |>
   from_expr |>
   simplify |>
+  simplify2 |>
   print_pExp
+
