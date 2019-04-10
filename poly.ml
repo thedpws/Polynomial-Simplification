@@ -171,23 +171,19 @@ let rec multiply (p1: pExp) (p2: pExp): pExp =
 
 (* SimplifyPlus :   Times -> SimplifyTimes  | Plus -> extract   | Term -> add       *)
 (* SimplifyTimes:   Plus -> SimplifyPlus    | Times -> extract  | Term -> multiply  *)
-let rec simplifyComplete (p: pExp): pExp =
-    Printf.printf "###########Simplify: (%s)\n" (string_pExp_d p);
+let rec simplify (p: pExp): pExp =
+    (* Printf.printf "###########Simplify: (%s)\n" (string_pExp_d p); *)
     match p with
     | Times(x::xs) | Plus(x::xs) ->
-            let subresult = simplifyComplete x in
+            let subresult = simplify x in
             (
             match p with
-            | Times(_) -> multiply subresult (simplifyComplete (Times xs))
-            | Plus(_) -> add subresult (simplifyComplete (Plus xs))
+            | Times(_) -> multiply subresult (simplify (Times xs))
+            | Plus(_) -> add subresult (simplify (Plus xs))
             | _ -> Error("oops")
             )
     (* | Times([]) | Plus([]) -> None *)
     | Error(msg) -> print_endline msg; p
-    | _ -> p
-let rec clean (p: pExp): pExp =
-    match p with
-    | Term(0,_) -> None
     | _ -> p
 
 (* let rec simplify (p: pExp): pExp = *)

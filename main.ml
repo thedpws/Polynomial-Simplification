@@ -101,5 +101,5 @@ let testcase = Times([ x1 ; x1 ; (Plus [x1])])
 let plus1 = Plus [x1 ; x1]
 (* let _ = multiply2 (*|> simplifyComplete*)  |> print_pExp *)
 let testcase = Times([ x1 ; Plus([ x1 ; x2 ]) ])
-let _ = simplify9 |> simplifyComplete |> print_pExp
+let _ = simplify6 |> simplify |> print_pExp
 
