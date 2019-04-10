@@ -26,7 +26,7 @@ let test8 = Plus([test7 ; Times([test1])]) (* (1x + 1x) + (1x) *)
 
 let test8 = Plus([Times([Plus([Term(1,1); Term(1,1)])]); Times([Term(1,1)])]) (* 1x + 1x + 1x *)
 let test9 = Plus([ Plus([ Term(1,1) ; Term(1,1) ]) ; Term(1,1) ])
-let main test = flatten test |> print_pExp_d; print_endline ""; flatten test |> print_pExp
+(* let main test = flatten test |> print_pExp_d; print_endline ""; flatten test |> print_pExp *)
 
 (* let _ = main test8 *)
 
@@ -46,9 +46,9 @@ let sort1 = [x1 ; x3 ; x2 ; x3 ; x2 ] (* x^3 + x^2 + x^1 *)
 
 let reduceAdd1 = Plus([Term(2,1) ; x1 ; x2 ; x1])
 let reduceAdd2 = Term(1,2)
-let reduceAdd3 = flatten (Plus([ Times([Term(1,0)])  ; Term(1,0) ]))
+(* let reduceAdd3 = flatten (Plus([ Times([Term(1,0)])  ; Term(1,0) ])) *)
 let reduceAdd4 =  (Plus([ Times([Term(1,0)])  ; Term(1,0) ]))
-let main test = reduce test |> print_pExp
+(* let main test = reduce test |> print_pExp *)
 
 let reduceMult1 = Times([x1 ; x1])
 let reduceMult2 = Times([x1 ; x2])
@@ -61,17 +61,16 @@ let reduce2 = (Times([ x1 ; (Plus([ x1 ; x2 ])) ; x1 ]))
 
 let reduce3 = Times([ (Plus([ x1 ; Term(1,0) ])) ; (Plus([ x1 ; Term(1,0) ]))  ])
 
-let _ = main reduce3
+(* let _ = main reduce3 *)
 
-let test11 = equal_pExp (Plus([Term(3,2); Term(1,2)])) (Plus([Term(3,2); Term(2,2)])) |> string_of_bool |> print_endline (* 3x^2 + x^2 == 3x^2 + 2x^2*)
-let test11 = equal_pExp (Plus([Term(3,2)])) (Plus([Term(3,2); Term(3,2)])) |> string_of_bool |> print_endline            (* 3x^2 == 3x^2 + 3x^2 *)
-let test11 = equal_pExp (Plus([Term(3,2); Term(2,2)])) (Plus([Term(3,2); Term(2,2)])) |> string_of_bool |> print_endline (* 3x^2 + 2x^2 == 3x^2 + 2x^2*)
+(* let test11 = equal_pExp (Plus([Term(3,2); Term(1,2)])) (Plus([Term(3,2); Term(2,2)])) |> string_of_bool |> print_endline (* 3x^2 + x^2 == 3x^2 + 2x^2*)*)
+(* let test11 = equal_pExp (Plus([Term(3,2)])) (Plus([Term(3,2); Term(3,2)])) |> string_of_bool |> print_endline            (* 3x^2 == 3x^2 + 3x^2 *)*)
+(* let test11 = equal_pExp (Plus([Term(3,2); Term(2,2)])) (Plus([Term(3,2); Term(2,2)])) |> string_of_bool |> print_endline (* 3x^2 + 2x^2 == 3x^2 + 2x^2*)*)
 
 
 let x = Term(1,1)
 let one = Term(1,0)
 let minusOne = Term(-1,0)
-let main test = test |> flatten |> reduce |> flatten |> simplify |> print_pExp
 
 let simplify2 = Plus([ x1 ; x1])
 let simplify3 = Times([ x1 ; x1 ; x2 ; (Plus([ x1 ; x2 ])) ])
@@ -80,6 +79,22 @@ let simplify5 = Plus([ one ; minusOne ])
 let simplify6 = Times([ x; Plus([ x ; one ]) ])
 let simplify7 = Times([ one; Plus([ x ; one ]) ])
 let simplify9 = Times([ Plus([ x ; one ]) ; Plus ([ x ; minusOne ]) ])
+
+(* let _ = main simplify9 *)
+
+(* let multiply1  = multiply (Times([x])) x *)
+(* let multiply2  = multiply (Times([x;x])) (Plus([x;one])) *)
+(* let multiply9 = multiply (Plus([ x; one ])) (Plus([ x; minusOne])) *)
+
+(* let _ = multiply2 |> simplify |> print_pExp *)
+let testcase = Times([ x1 ; x1 ; (Plus [x1])])
+(* let testcase = Plus([ (Times [ x1 ; x1 ] ) ; one ]) *)
+let plus1 = Plus [x1 ; x1]
+(* let _ = multiply2 (*|> simplifyComplete*)  |> print_pExp *)
+let testcase = Times([ x1 ; Plus([ x1 ; x2 ]) ])
+(* let _ = simplify6 |> simplify |> print_pExp *)
+
+
 let _ = main simplify7 *)
 
 let filename = Sys.argv.(1)
