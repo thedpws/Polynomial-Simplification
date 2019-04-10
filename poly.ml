@@ -17,7 +17,9 @@ let rec delist (l: string list): string =
 (* Turns p expression into string *)
 let rec string_pExp (_e: pExp): string =
   match _e with
+  | Term(1,0) -> "1"
   | Term(a,0) -> string_of_int a
+  | Term(1,e) -> Printf.sprintf "x^%d" e
   | Term(a,1) -> Printf.sprintf "%dx" a
   | Term(a,e) -> Printf.sprintf "%dx^%d" a e
   | Plus(p::ps) ->
@@ -97,7 +99,7 @@ let rec from_expr (_e: Expr.expr) : pExp =
       Times([Term(-1, 0); evalExpr])
     )
   )
-  | _ -> Term(0,0)
+  | _ -> Error("Fail to match a pExp")
   (* | Pos(expr)         -> 
   (
     match expr with
@@ -153,9 +155,9 @@ let rec add (p1: pExp) (p2: pExp): pExp =
 
     | _,_ -> let msg = Printf.sprintf "Could not add these: (%s) (%s)" (string_pExp p1) (string_pExp p2) in Error(msg)
         ) in
-    (* Printf.printf ("Add: (%s)+(%s) = (%s)\n") (string_pExp p1) (string_pExp_d p2) (string_pExp_d result); result *)
+    Printf.printf ("Add: (%s)+(%s) = (%s)\n") (string_pExp_d p1) (string_pExp_d p2) (string_pExp_d result); result
     (* Printf.printf ("Add: (%s)+(%s) = (%s)\n") (string_pExp p1) (string_pExp p2) (string_pExp result); result *)
-    result
+    (* result *)
 
 let rec multiply (p1: pExp) (p2: pExp): pExp =
     let result =
@@ -208,17 +210,71 @@ let rec multiply (p1: pExp) (p2: pExp): pExp =
             let msg = Printf.sprintf "Case not handled in multiply for terms: (%s) (%s)" (string_pExp p1) (string_pExp p2) in
             Error(msg)
         ) in
-    (* Printf.printf ("Multiply: (%s)*(%s) = (%s)\n") (string_pExp_d p1) (string_pExp_d p2) (string_pExp_d result); result *)
+    Printf.printf ("Multiply: (%s)*(%s) = (%s)\n") (string_pExp_d p1) (string_pExp_d p2) (string_pExp_d result); result
     (* Printf.printf ("Multiply: (%s)*(%s) = (%s)\n") (string_pExp p1) (string_pExp p2) (string_pExp result); result *)
-    result
+    (* result *)
 
 
+let rec removeIdentities (p: pExp): pExp =
+    match p with
+    | Term(_) -> p
+    | Plus([]) -> p
+    | Plus(pp::pps) ->
+            (
+            match pp with
+            | Term(0,_) -> removeIdentities (Plus pps)
+            | _ -> 
+                    (
+                        match removeIdentities (Plus pps) with
+                        | Plus(pps) -> Plus(pp::pps)
+                        | Plus([]) -> Plus([pp])
+                    )
+            )
+    | Times([]) -> p
+    | Times(tt::tts) ->
+            (
+                match tt with
+                | Term(1,0) -> removeIdentities (Times tts)
+                | _ ->
+                        (
+                            match removeIdentities (Times tts) with
+                            | Times(tts) -> Times(tt::tts)
+                            | Times([]) -> Times([tt])
+                        )
+            )
+    | _ -> Error("Unmatched case in removeIdentities")
+
+(* let rec degree (p: pExp): int = *)
+(*     match p with *)
+(*     | Term(_,e) -> e *)
+(*     | Plus(x::xs) -> *)
+(*             let d1 = degree x in *)
+(*             let d2 = degree Plus(xs) in *)
+(*             if ( *)
+
+(* Incomplete. Requires Fixed point checks. Or we could perform this routing N times where N is the degree of the polynomial... *)
+let rec addLikeTerms (p: pExp): pExp =
+    match p with
+    | Plus(p1::p2::pps) ->
+            let newTerms = 
+                (
+            match p1, p2 with
+            Term(a1,e1), Term(a2,e2) ->
+                if (e1 = e2) then (Term(a1+a2,e1))::pps
+                else let (Plus aaa) = addLikeTerms (Plus(p1::pps)) in
+                p2::aaa
+            ) in Plus(newTerms)
+    | Plus(x::[]) -> p
+    | Plus([]) -> p
+    | _ -> p
 
 
 (* SimplifyPlus :   Times -> SimplifyTimes  | Plus -> extract   | Term -> add       *)
 (* SimplifyTimes:   Plus -> SimplifyPlus    | Times -> extract  | Term -> multiply  *)
 let rec simplify (p: pExp): pExp =
-    (* Printf.printf "##### SIMPLIFY: (%s) #####\n" (string_pExp_d p); *)
+    Printf.printf "##### SIMPLIFY: (%s) #####\n" (string_pExp_d p);
+    let result =
+        (
     match p with
     | Times(x::xs) | Plus(x::xs) ->
             let subresult = simplify x in
@@ -230,4 +286,6 @@ let rec simplify (p: pExp): pExp =
             )
     | Error(msg) -> print_endline msg; p
     | _ -> p
+        ) in result |> removeIdentities |> addLikeTerms
+
 
