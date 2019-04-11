@@ -82,7 +82,7 @@ let rec from_expr (_e: Expr.expr) : pExp =
     (
       if n > 0 then from_expr (Mul(expr, Pow(expr, n-1)))
       else if n = 0 then Term(1,0)
-      else from_expr expr                                         (* exponent = 1 *)
+      else from_expr expr                                     
     )
   )
   | Pos(expr) -> from_expr expr
@@ -193,7 +193,11 @@ let rec multiply (p1: pExp) (p2: pExp): pExp =
 
 let rec removeIdentities (p: pExp): pExp =
   match p with
-  | Term(_) -> p
+  | Term(x,_) -> 
+  (
+    if (x = 0) then (Term(0,0))
+    else p
+  )
   | Plus([]) -> p
   | Plus(pp::pps) ->
           (
@@ -253,8 +257,7 @@ let rec sort (p:pExp): pExp =
   ) in Plus(sorted)
   
 (* 
-  Compute if two pExp are the same 
-  Make sure this code works before you work on simplify1  
+  Computes if two pExp are the same 
 *)
 let rec equal_pExp (_e1: pExp) (_e2: pExp) :bool =
   match _e1 with
@@ -283,23 +286,8 @@ let rec equal_pExp (_e1: pExp) (_e2: pExp) :bool =
   )
   | Times(ts) -> false
   | _         -> false
-  
-(* Incomplete. Requires Fixed point checks. Or we could perform this routing N times where N is the degree of the polynomial... *)
-(* let rec addLikeTerms (p: pExp): pExp =
-  match p with
-  | Plus(p1::p2::pps) ->
-          let newTerms = 
-              (
-          match p1, p2 with
-          Term(a1,e1), Term(a2,e2) ->
-              if (e1 = e2) then (Term(a1+a2,e1))::pps
-              else let (Plus aaa) = addLikeTerms (Plus(p1::pps)) in
-              p2::aaa
-          ) in Plus(newTerms)
-  | Plus(x::[]) -> p
-  | Plus([]) -> p
-  | _ -> p *)
 
+(* Combines like terms after sorting *)
 let rec addLikeTerms (p: pExp): pExp =
   match p with
   | Plus(p1::p2::pps) ->
@@ -338,6 +326,7 @@ let rec simplify (p: pExp): pExp =
     | Error(msg) -> print_endline msg; p
     | _ -> p
       ) in result |> removeIdentities
+
 
 let rec simplify2 (e:pExp) : pExp =
   let origSort = sort e in
